@@ -24,6 +24,8 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/trie"
+
+	boostTypes "github.com/flashbots/go-boost-utils/types"
 )
 
 //go:generate go run github.com/fjl/gencodec -type PayloadAttributes -field-override payloadAttributesMarshaling -out gen_blockparams.go
@@ -207,7 +209,7 @@ func ExecutableDataToBlock(params ExecutableData) (*types.Block, error) {
 	return block, nil
 }
 
-// BlockToExecutableData constructs the ExecutableData structure by filling the
+// BlockToExecutableData constructs the executableDataV1 structure by filling the
 // fields from the given block. It assumes the given block is post-merge block.
 func BlockToExecutableData(block *types.Block, fees *big.Int) *ExecutionPayloadEnvelope {
 	data := &ExecutableData{
@@ -234,4 +236,36 @@ func BlockToExecutableData(block *types.Block, fees *big.Int) *ExecutionPayloadE
 type ExecutionPayloadBodyV1 struct {
 	TransactionData []hexutil.Bytes     `json:"transactions"`
 	Withdrawals     []*types.Withdrawal `json:"withdrawals,omitempty"`
+}
+
+func ExecutionPayloadToBlock(payload *boostTypes.ExecutionPayload) (*types.Block, error) {
+	// TODO: separate decode function to avoid allocating twice
+	transactionBytes := make([][]byte, len(payload.Transactions))
+	for i, txHexBytes := range payload.Transactions {
+		transactionBytes[i] = txHexBytes[:]
+	}
+	txs, err := decodeTransactions(transactionBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	header := &types.Header{
+		ParentHash:  common.Hash(payload.ParentHash),
+		UncleHash:   types.EmptyUncleHash,
+		Coinbase:    common.Address(payload.FeeRecipient),
+		Root:        common.Hash(payload.StateRoot),
+		TxHash:      types.DeriveSha(types.Transactions(txs), trie.NewStackTrie(nil)),
+		ReceiptHash: common.Hash(payload.ReceiptsRoot),
+		Bloom:       types.BytesToBloom(payload.LogsBloom[:]),
+		Difficulty:  common.Big0,
+		Number:      new(big.Int).SetUint64(payload.BlockNumber),
+		GasLimit:    payload.GasLimit,
+		GasUsed:     payload.GasUsed,
+		Time:        payload.Timestamp,
+		BaseFee:     payload.BaseFeePerGas.BigInt(),
+		Extra:       payload.ExtraData,
+		MixDigest:   common.Hash(payload.Random),
+	}
+	block := types.NewBlockWithHeader(header).WithBody(txs, nil /* uncles */)
+	return block, nil
 }

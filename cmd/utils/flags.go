@@ -970,6 +970,13 @@ var (
 		Value:    metrics.DefaultConfig.InfluxDBOrganization,
 		Category: flags.MetricsCategory,
 	}
+
+	// Builder API flags
+	BuilderBlockValidationBlacklistSourceFilePath = &cli.StringFlag{
+		Name:     "builder.validation_blacklist",
+		Usage:    "Path to file containing blacklisted addresses, json list of strings",
+		Category: flags.EthCategory,
+	}
 )
 
 var (

@@ -33,6 +33,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/usbwallet"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/core/rawdb"
+	blockvalidationapi "github.com/ethereum/go-ethereum/eth/block-validation"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/internal/ethapi"
 	"github.com/ethereum/go-ethereum/internal/flags"
@@ -180,6 +181,10 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 			stack.Close()
 			utils.Fatalf("Database has receipts with a legacy format. Please run `geth db freezer-migrate`.")
 		}
+	}
+
+	if err := blockvalidationapi.Register(stack, eth, ctx); err != nil {
+		utils.Fatalf("Failed to register the Block Validation API: %v", err)
 	}
 
 	// Configure GraphQL if requested

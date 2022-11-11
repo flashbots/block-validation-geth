@@ -38,6 +38,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/utils"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
@@ -2475,7 +2476,7 @@ func (bc *BlockChain) SetTrieFlushInterval(interval time.Duration) {
 	atomic.StoreInt64(&bc.flushInterval, int64(interval))
 }
 
-func (bc *BlockChain) ValidatePayload(block *types.Block, feeRecipient common.Address, expectedProfit *big.Int, vmConfig vm.Config) error {
+func (bc *BlockChain) ValidatePayload(block *types.Block, feeRecipient common.Address, expectedProfit *big.Int, registeredGasLimit uint64, vmConfig vm.Config) error {
 	header := block.Header()
 	if err := bc.engine.VerifyHeader(bc, header, true); err != nil {
 		return err
@@ -2490,6 +2491,11 @@ func (bc *BlockChain) ValidatePayload(block *types.Block, feeRecipient common.Ad
 	parent := bc.GetHeader(block.ParentHash(), block.NumberU64()-1)
 	if parent == nil {
 		return errors.New("parent not found")
+	}
+
+	calculatedGasLimit := utils.CalcGasLimit(parent.GasLimit, registeredGasLimit)
+	if calculatedGasLimit != header.GasLimit {
+		return errors.New("incorrect gas limit set")
 	}
 
 	statedb, err := bc.StateAt(parent.Root)

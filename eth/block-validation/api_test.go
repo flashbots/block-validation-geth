@@ -98,14 +98,13 @@ func TestValidateBuilderSubmissionV1(t *testing.T) {
 
 	blockRequest.Message.GasLimit += 1
 	blockRequest.ExecutionPayload.GasLimit += 1
+	updatePayloadHash(t, blockRequest)
 
-	oldHash := blockRequest.Message.BlockHash
-	copy(blockRequest.Message.BlockHash[:], hexutil.MustDecode("0xa6592f67b46f9567ff417defcc2e5ef40b7e3eafb04be990395ef3807d6c57e9")[:32])
 	require.ErrorContains(t, api.ValidateBuilderSubmissionV1(blockRequest), "incorrect gas limit set")
 
 	blockRequest.Message.GasLimit -= 1
 	blockRequest.ExecutionPayload.GasLimit -= 1
-	blockRequest.Message.BlockHash = oldHash
+	updatePayloadHash(t, blockRequest)
 
 	// TODO: test with contract calling blacklisted address
 	// Test tx from blacklisted address
@@ -144,8 +143,14 @@ func TestValidateBuilderSubmissionV1(t *testing.T) {
 	invalidPayload.LogsBloom = boostTypes.Bloom{}
 	copy(invalidPayload.ReceiptsRoot[:], hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")[:32])
 	blockRequest.ExecutionPayload = invalidPayload
-	copy(blockRequest.Message.BlockHash[:], hexutil.MustDecode("0xb91a7a79407584a835d814de77808a25e72d5025bc7691630e57c40d8c47ee33")[:32])
+	updatePayloadHash(t, blockRequest)
 	require.ErrorContains(t, api.ValidateBuilderSubmissionV1(blockRequest), "could not apply tx 3", "insufficient funds for gas * price + value")
+}
+
+func updatePayloadHash(t *testing.T, blockRequest *BuilderBlockValidationRequest) {
+	updatedBlock, err := beacon.ExecutionPayloadToBlock(blockRequest.ExecutionPayload)
+	require.NoError(t, err)
+	copy(blockRequest.Message.BlockHash[:], updatedBlock.Hash().Bytes()[:32])
 }
 
 func generatePreMergeChain(n int) (*core.Genesis, []*types.Block) {

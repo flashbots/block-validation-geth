@@ -2461,7 +2461,9 @@ func (bc *BlockChain) ValidatePayload(block *types.Block, feeRecipient common.Ad
 		return err
 	}
 
-	if err := bc.validator.ValidateBody(block); err != nil {
+	// Check if the body is valid. Ignore ErrKnownBlock because known blocks are
+	// by definition valid.
+	if err := bc.validator.ValidateBody(block); err != nil && err != ErrKnownBlock {
 		return err
 	}
 

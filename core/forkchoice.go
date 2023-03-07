@@ -85,7 +85,18 @@ func (f *ForkChoice) ReorgNeeded(current *types.Header, header *types.Header) (b
 	// Accept the new header as the chain head if the transition
 	// is already triggered. We assume all the headers after the
 	// transition come from the trusted consensus layer.
-	if ttd := f.chain.Config().TerminalTotalDifficulty; ttd != nil && ttd.Cmp(externTd) <= 0 {
+
+	// note from mike -- the condition below is what returns true for the reorg.
+	// i am pretty sure this logic is meant to handle pre-merge fork-choice
+	// because the quote "in the extern mode, the trusted header is always
+	// selected as the head." post-merge, the beacon clients should determine
+	// the canonical head, not geth. this line causes an error for us if a
+	// builder submits the same block twice, which results in
+	// ttd = 10790000 & externTd = 10790000. this check also is triggered on
+	// equality, so it returns true. by changing it to a strict `<` we avoid any
+	// such errors, but i think we could probably just skip calling this all
+	// together from the block validation flow.
+	if ttd := f.chain.Config().TerminalTotalDifficulty; ttd != nil && ttd.Cmp(externTd) < 0 {
 		return true, nil
 	}
 	// If the total difficulty is higher than our known, add it to the canonical chain

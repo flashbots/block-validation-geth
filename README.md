@@ -2,6 +2,8 @@
 
 This repo is deprecated in favor of the validation API in the flashbots builder.
 
+We are phasing out this repository because we have made the builder repository open source. To avoid the extra work involved in testing two repositories, which increases the chance of errors, we have decided to focus only on verifying the builder repository. The additional effort required to maintain separate changes for the sole purpose of separation is outweighed by the extra testing needed.
+
 Use https://github.com/flashbots/builder for block validation.
 
 [original readme](README.original.md)

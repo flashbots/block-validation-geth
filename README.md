@@ -1,3 +1,9 @@
+# Archived: This repo is no longer used by flashbots.
+
+This repo is deprecated in favor of the validation API in the flashbots builder.
+
+Use https://github.com/flashbots/builder for block validation.
+
 [original readme](README.original.md)
 
 # Block validation API
